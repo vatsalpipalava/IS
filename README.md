@@ -3,7 +3,7 @@
   <thead>
     <tr>
       <th scope="col">No.</th>
-      <th scope="col">Practical</th>
+      <th scope="col">Practical's</th>
     </tr>
   </thead>
   <tbody>

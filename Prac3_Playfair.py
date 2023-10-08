@@ -1,177 +1,103 @@
-# Python program to implement Playfair Cipher
+import re
 
-# Function to convert the string to lowercase
+def prepare_text(text):
+    # Remove spaces and convert to uppercase
+    text = re.sub(r'[^A-Za-z]', '', text.upper())
+    # Replace 'J' with 'I' (Playfair does not use 'J')
+    text = text.replace("J", "I")
+    return text
 
+def build_playfair_matrix(key):
+    key = prepare_text(key)
+    # Initialize a 5x5 matrix with zeros
+    matrix = [['' for _ in range(5)] for _ in range(5)]
+    used_chars = set()
+    chars = key + 'ABCDEFGHIKLMNOPQRSTUVWXYZ'
+    
+    for char in chars:
+        if char not in used_chars:
+            row, col = divmod(len(used_chars), 5)
+            matrix[row][col] = char
+            used_chars.add(char)
+    
+    return matrix
 
-def toLowerCase(text):
-	return text.lower()
+def find_char_positions(matrix, char):
+    # Find the row and column of a character in the matrix
+    for row in range(5):
+        for col in range(5):
+            if matrix[row][col] == char:
+                return (row, col)
 
-# Function to remove all spaces in a string
+def playfair_encrypt(plain_text, key):
+    # Build the Playfair matrix using the provided key
+    matrix = build_playfair_matrix(key)
+    # Prepare the plain text by removing spaces, converting to uppercase, and replacing 'J' with 'I'
+    plain_text = prepare_text(plain_text)
+    # Initialize an empty list to store the encrypted text
+    encrypted_text = []
+    i = 0
+    # Iterate through the plain text in pairs
+    while i < len(plain_text):
+        char1 = plain_text[i]
+        char2 = plain_text[i + 1]
+        # Find the positions (row and column) of the characters in the matrix
+        row1, col1 = find_char_positions(matrix, char1)
+        row2, col2 = find_char_positions(matrix, char2)
+        if row1 == row2:  # Same row
+            # Characters are in the same row, so shift to the right (circularly) in the same row
+            encrypted_text.append(matrix[row1][(col1 + 1) % 5])
+            encrypted_text.append(matrix[row2][(col2 + 1) % 5])
+        elif col1 == col2:  # Same column
+            # Characters are in the same column, so shift downwards (circularly) in the same column
+            encrypted_text.append(matrix[(row1 + 1) % 5][col1])
+            encrypted_text.append(matrix[(row2 + 1) % 5][col2])
+        else:
+            # Characters are in different rows and columns, form a rectangle, replace with opposite corners
+            encrypted_text.append(matrix[row1][col2])
+            encrypted_text.append(matrix[row2][col1])
+        i += 2
+    # Join the encrypted characters and return the encrypted text
+    return ''.join(encrypted_text)
 
+def playfair_decrypt(cipher_text, key):
+    # Build the Playfair matrix using the provided key
+    matrix = build_playfair_matrix(key)
+    # Initialize an empty list to store the decrypted text
+    decrypted_text = []
+    i = 0
+    # Iterate through the cipher text in pairs
+    while i < len(cipher_text):
+        char1 = cipher_text[i]
+        char2 = cipher_text[i + 1]
+        # Find the positions (row and column) of the characters in the matrix
+        row1, col1 = find_char_positions(matrix, char1)
+        row2, col2 = find_char_positions(matrix, char2)
+        if row1 == row2:  # Same row
+            # Characters are in the same row, so shift to the left (circularly) in the same row
+            decrypted_text.append(matrix[row1][(col1 - 1) % 5])
+            decrypted_text.append(matrix[row2][(col2 - 1) % 5])
+        elif col1 == col2:  # Same column
+            # Characters are in the same column, so shift upwards (circularly) in the same column
+            decrypted_text.append(matrix[(row1 - 1) % 5][col1])
+            decrypted_text.append(matrix[(row2 - 1) % 5][col2])
+        else:
+            # Characters are in different rows and columns, form a rectangle, replace with opposite corners
+            decrypted_text.append(matrix[row1][col2])
+            decrypted_text.append(matrix[row2][col1])
+        i += 2
+    # Join the decrypted characters and return the decrypted text
+    return ''.join(decrypted_text)
 
-def removeSpaces(text):
-	newText = ""
-	for i in text:
-		if i == " ":
-			continue
-		else:
-			newText = newText + i
-	return newText
+# Take user input for key and plaintext
+key = input("Enter the key: ")
+plaintext = input("Enter the plaintext: ")
 
-# Function to group 2 elements of a string
-# as a list element
+# Encrypt the plaintext
+encrypted_text = playfair_encrypt(plaintext, key)
+print("Encrypted: ", encrypted_text)
 
-
-def Diagraph(text):
-	Diagraph = []
-	group = 0
-	for i in range(2, len(text), 2):
-		Diagraph.append(text[group:i])
-
-		group = i
-	Diagraph.append(text[group:])
-	return Diagraph
-
-# Function to fill a letter in a string element
-# If 2 letters in the same string matches
-
-
-def FillerLetter(text):
-	k = len(text)
-	if k % 2 == 0:
-		for i in range(0, k, 2):
-			if text[i] == text[i+1]:
-				new_word = text[0:i+1] + str('x') + text[i+1:]
-				new_word = FillerLetter(new_word)
-				break
-			else:
-				new_word = text
-	else:
-		for i in range(0, k-1, 2):
-			if text[i] == text[i+1]:
-				new_word = text[0:i+1] + str('x') + text[i+1:]
-				new_word = FillerLetter(new_word)
-				break
-			else:
-				new_word = text
-	return new_word
-
-
-list1 = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm',
-		'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
-
-# Function to generate the 5x5 key square matrix
-
-
-def generateKeyTable(word, list1):
-	key_letters = []
-	for i in word:
-		if i not in key_letters:
-			key_letters.append(i)
-
-	compElements = []
-	for i in key_letters:
-		if i not in compElements:
-			compElements.append(i)
-	for i in list1:
-		if i not in compElements:
-			compElements.append(i)
-
-	matrix = []
-	while compElements != []:
-		matrix.append(compElements[:5])
-		compElements = compElements[5:]
-
-	return matrix
-
-
-def search(mat, element):
-	for i in range(5):
-		for j in range(5):
-			if(mat[i][j] == element):
-				return i, j
-
-
-def encrypt_RowRule(matr, e1r, e1c, e2r, e2c):
-	char1 = ''
-	if e1c == 4:
-		char1 = matr[e1r][0]
-	else:
-		char1 = matr[e1r][e1c+1]
-
-	char2 = ''
-	if e2c == 4:
-		char2 = matr[e2r][0]
-	else:
-		char2 = matr[e2r][e2c+1]
-
-	return char1, char2
-
-
-def encrypt_ColumnRule(matr, e1r, e1c, e2r, e2c):
-	char1 = ''
-	if e1r == 4:
-		char1 = matr[0][e1c]
-	else:
-		char1 = matr[e1r+1][e1c]
-
-	char2 = ''
-	if e2r == 4:
-		char2 = matr[0][e2c]
-	else:
-		char2 = matr[e2r+1][e2c]
-
-	return char1, char2
-
-
-def encrypt_RectangleRule(matr, e1r, e1c, e2r, e2c):
-	char1 = ''
-	char1 = matr[e1r][e2c]
-
-	char2 = ''
-	char2 = matr[e2r][e1c]
-
-	return char1, char2
-
-
-def encryptByPlayfairCipher(Matrix, plainList):
-	CipherText = []
-	for i in range(0, len(plainList)):
-		c1 = 0
-		c2 = 0
-		ele1_x, ele1_y = search(Matrix, plainList[i][0])
-		ele2_x, ele2_y = search(Matrix, plainList[i][1])
-
-		if ele1_x == ele2_x:
-			c1, c2 = encrypt_RowRule(Matrix, ele1_x, ele1_y, ele2_x, ele2_y)
-			# Get 2 letter cipherText
-		elif ele1_y == ele2_y:
-			c1, c2 = encrypt_ColumnRule(Matrix, ele1_x, ele1_y, ele2_x, ele2_y)
-		else:
-			c1, c2 = encrypt_RectangleRule(
-				Matrix, ele1_x, ele1_y, ele2_x, ele2_y)
-
-		cipher = c1 + c2
-		CipherText.append(cipher)
-	return CipherText
-
-
-text_Plain = 'Vatsal'
-text_Plain = removeSpaces(toLowerCase(text_Plain))
-PlainTextList = Diagraph(FillerLetter(text_Plain))
-if len(PlainTextList[-1]) != 2:
-	PlainTextList[-1] = PlainTextList[-1]+'z'
-
-key = "Pipalava"
-print("Key text:", key)
-key = toLowerCase(key)
-Matrix = generateKeyTable(key, list1)
-
-print("Plain Text:", text_Plain)
-CipherList = encryptByPlayfairCipher(Matrix, PlainTextList)
-
-CipherText = ""
-for i in CipherList:
-	CipherText += i
-print("CipherText:", CipherText)
+# Decrypt the ciphertext
+decrypted_text = playfair_decrypt(encrypted_text, key)
+print("Decrypted: ", decrypted_text)
 
